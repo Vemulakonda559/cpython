@@ -747,6 +747,12 @@ def _finddoc(obj, *, search_in_class=True):
         cls = _findclass(obj.fget)
         if cls is None or getattr(cls, name) is not obj:
             return None
+    # Should be tested before ismethoddescriptor()
+    elif isinstance(obj, functools.cached_property):
+        name = obj.attrname
+        cls = _findclass(obj.func)
+        if cls is None or getattr(cls, name) is not obj:
+            return None
     elif ismethoddescriptor(obj) or isdatadescriptor(obj):
         name = obj.__name__
         cls = obj.__objclass__
@@ -2134,7 +2140,6 @@ def _signature_strip_non_python_syntax(signature):
 
     current_parameter = 0
     OP = token.OP
-    ERRORTOKEN = token.ERRORTOKEN
 
     # token stream always starts with ENCODING token, skip it
     t = next(token_stream)
@@ -3402,20 +3407,20 @@ def _main():
         sys.exit(1)
 
     if args.details:
-        print('Target: {}'.format(target))
-        print('Origin: {}'.format(getsourcefile(module)))
-        print('Cached: {}'.format(module.__cached__))
+        print(f'Target: {target}')
+        print(f'Origin: {getsourcefile(module)}')
+        print(f'Cached: {module.__spec__.cached}')
         if obj is module:
-            print('Loader: {}'.format(repr(module.__loader__)))
+            print(f'Loader: {module.__loader__!r}')
             if hasattr(module, '__path__'):
-                print('Submodule search path: {}'.format(module.__path__))
+                print(f'Submodule search path: {module.__path__}')
         else:
             try:
                 __, lineno = findsource(obj)
             except Exception:
                 pass
             else:
-                print('Line: {}'.format(lineno))
+                print(f'Line: {lineno}')
 
         print()
     else:

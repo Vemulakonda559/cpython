@@ -292,7 +292,9 @@ are always available.  They are listed here in alphabetical order.
       :func:`property`.
 
 
-.. function:: compile(source, filename, mode, flags=0, dont_inherit=False, optimize=-1)
+.. function:: compile(source, filename, mode, flags=0, \
+                      dont_inherit=False, optimize=-1, \
+                      *, module=None)
 
    Compile the *source* into a code or AST object.  Code objects can be executed
    by :func:`exec` or :func:`eval`.  *source* can either be a normal string, a
@@ -334,8 +336,12 @@ are always available.  They are listed here in alphabetical order.
    ``__debug__`` is true), ``1`` (asserts are removed, ``__debug__`` is false)
    or ``2`` (docstrings are removed too).
 
-   This function raises :exc:`SyntaxError` if the compiled source is invalid,
-   and :exc:`ValueError` if the source contains null bytes.
+   The optional argument *module* specifies the module name.
+   It is needed to unambiguous :ref:`filter <warning-filter>` syntax warnings
+   by module name.
+
+   This function raises :exc:`SyntaxError` or :exc:`ValueError` if the compiled
+   source is invalid.
 
    If you want to parse Python code into its AST representation, see
    :func:`ast.parse`.
@@ -370,6 +376,9 @@ are always available.  They are listed here in alphabetical order.
    .. versionadded:: 3.8
       ``ast.PyCF_ALLOW_TOP_LEVEL_AWAIT`` can now be passed in flags to enable
       support for top-level ``await``, ``async for``, and ``async with``.
+
+   .. versionadded:: 3.15
+      Added the *module* parameter.
 
 
 .. class:: complex(number=0, /)
@@ -517,7 +526,7 @@ are always available.  They are listed here in alphabetical order.
       >>> dir()   # show the names in the module namespace  # doctest: +SKIP
       ['__builtins__', '__name__', 'struct']
       >>> dir(struct)   # show the names in the struct module # doctest: +SKIP
-      ['Struct', '__all__', '__builtins__', '__cached__', '__doc__', '__file__',
+      ['Struct', '__all__', '__builtins__', '__doc__', '__file__',
        '__initializing__', '__loader__', '__name__', '__package__',
        '_clearcache', 'calcsize', 'error', 'pack', 'pack_into',
        'unpack', 'unpack_from']
@@ -597,16 +606,16 @@ are always available.  They are listed here in alphabetical order.
       This function executes arbitrary code. Calling it with
       user-supplied input may lead to security vulnerabilities.
 
-   The *expression* argument is parsed and evaluated as a Python expression
+   The *source* argument is parsed and evaluated as a Python expression
    (technically speaking, a condition list) using the *globals* and *locals*
    mappings as global and local namespace.  If the *globals* dictionary is
    present and does not contain a value for the key ``__builtins__``, a
    reference to the dictionary of the built-in module :mod:`builtins` is
-   inserted under that key before *expression* is parsed.  That way you can
+   inserted under that key before *source* is parsed.  That way you can
    control what builtins are available to the executed code by inserting your
    own ``__builtins__`` dictionary into *globals* before passing it to
    :func:`eval`.  If the *locals* mapping is omitted it defaults to the
-   *globals* dictionary.  If both mappings are omitted, the expression is
+   *globals* dictionary.  If both mappings are omitted, the source is
    executed with the *globals* and *locals* in the environment where
    :func:`eval` is called.  Note, *eval()* will only have access to the
    :term:`nested scopes <nested scope>` (non-locals) in the enclosing
@@ -1544,7 +1553,6 @@ are always available.  They are listed here in alphabetical order.
    length 1, return its single byte value.
    For example, ``ord(b'a')`` returns the integer ``97``.
 
-
 .. function:: pow(base, exp, mod=None)
 
    Return *base* to the power *exp*; if *mod* is present, return *base* to the
@@ -1586,7 +1594,6 @@ are always available.  They are listed here in alphabetical order.
       Allow keyword arguments.  Formerly, only positional arguments were
       supported.
 
-
 .. function:: print(*objects, sep=' ', end='\n', file=None, flush=False)
 
    Print *objects* to the text stream *file*, separated by *sep* and followed
@@ -1604,13 +1611,38 @@ are always available.  They are listed here in alphabetical order.
    arguments are converted to text strings, :func:`print` cannot be used with
    binary mode file objects.  For these, use ``file.write(...)`` instead.
 
-   Output buffering is usually determined by *file*.
-   However, if *flush* is true, the stream is forcibly flushed.
+   Output buffering is usually determined by *file*.  However, if *flush* is
+   true, the stream is forcibly flushed.
 
+   .. note::
+
+      In Python, printing a string containing newline characters does not automatically
+      flush stdout. Python performs buffering at the write/operation level, so newlines
+      inside a single write do not necessarily trigger an immediate flush. The exact
+      timing of output may vary depending on the environment:
+
+      - When stdout is connected to a terminal (TTY), output is line-buffered and
+        typically flushes after the write completes.
+      - When stdout is redirected to a file or pipe, output may be fully buffered and
+        not flush until the buffer fills or flush is requested.
+
+      For guaranteed immediate output, use ``flush=True`` or call
+      ``sys.stdout.flush()`` explicitly. Running Python with the ``-u`` flag also
+      forces unbuffered output, which may be useful in scripts requiring immediate writes.
+
+      Example:
+
+      .. code-block:: python
+
+         from time import sleep
+         # This call performs one write operation, so the newline inside the string
+         # does not trigger an immediate flush by itself.
+         print("Hello\nWorld")
+         sleep(3)
+         print("Hi there!")
 
    .. versionchanged:: 3.3
       Added the *flush* keyword argument.
-
 
 .. class:: property(fget=None, fset=None, fdel=None, doc=None)
 
